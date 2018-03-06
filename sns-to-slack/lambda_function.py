@@ -83,7 +83,9 @@ def get_slack_username(event_src):
         'cloudwatch': 'AWS CloudWatch',
         'autoscaling': 'AWS AutoScaling',
         'elasticache': 'AWS ElastiCache',
-        'rds': 'AWS RDS'}
+        'rds': 'AWS RDS',
+        'codedeploy': 'AWS CodeDeploy'
+    }
 
     try:
         return username_map[event_src]
@@ -209,6 +211,38 @@ def lambda_handler(event, context):
                 "title": "Details",
                 "value": "<{0}|{1}>".format(title_str, title_lnk_str)
             })
+    elif json_msg.get('deploymentId'):
+        event_src = 'codedeploy'
+        event_cond = json_msg['status']
+        color_map = {
+            'CREATED': 'good',
+            'SUCCEEDED': 'good',
+            'ABORTED': 'warning',
+            'FAILED': 'danger'
+        }
+        attachments = [{
+            "fallback": message,
+            "title": "Deployment detail",
+            "title_link": "https://console.aws.amazon.com/codedeploy/home?region=" + json_msg['region'] + "#/deployments/" + json_msg['deploymentId'],
+            "color": color_map.get(event_cond, 'good'),
+            "fields": [{
+                "title": "Deployment Id",
+                "value": json_msg['deploymentId'],
+                "short": True
+            }, {
+                "title": "Status",
+                "value": event_cond,
+                "short": True
+            }, {
+                "title": "Application",
+                "value": json_msg['applicationName'],
+                "short": True
+            }, {
+                "title": "Deployment Group",
+                "value": json_msg['deploymentGroupName'],
+                "short": True
+            }]
+        }]
     else:
         event_src = 'other'
 
